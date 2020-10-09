@@ -57,6 +57,8 @@ func initDB(c *dbConfig) {
 const (
 	TypeOut    = "赶礼"
 	TypeIn     = "收礼"
+	TypeOutRed = "发红包"
+	TypeInRed  = "收红包"
 	TypeNotOut = "未赶礼"
 	TypeNotIn  = "未收礼"
 
@@ -72,7 +74,7 @@ const (
 const (
 	IdxName = iota
 	IdxMoney
-	IdxSubject
+	IdxNote
 	IDxType
 	IdxCategory
 	IdxAt
@@ -90,10 +92,10 @@ type invitation struct {
 	Name  string `gorm:"primary_key;type:varchar(10);not null"` // 姓名
 	Money int    `gorm:"type:integer;not null"`                 // 礼金。0表示，拒绝邀请；大于0，表示收礼；小于0，表示赶礼
 
-	Subject  string    `gorm:"primary_key;type:varchar(30);not null"` // 缘由
-	Type     string    `gorm:"type:varchar(5);not null"`              // 类型
-	Category string    `gorm:"type:varchar(5);not null"`              // 类别
-	At       time.Time `gorm:"type:timestamp with time zone"`         // 时间
+	Note     string    `gorm:"type:varchar(30);not null"`            // 备注
+	Type     string    `gorm:"primary_key;type:varchar(5);not null"` // 类型
+	Category string    `gorm:"primary_key;type:varchar(5);not null"` // 类别
+	At       time.Time `gorm:"type:timestamp with time zone"`        // 时间
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -103,7 +105,7 @@ type invitation struct {
 func newInvitation(values []string) *invitation {
 	name := values[IdxName]
 	money, _ := strconv.Atoi(values[IdxMoney])
-	subject := values[IdxSubject]
+	note := values[IdxNote]
 	typ := values[IDxType]
 	category := values[IdxCategory]
 	at := values[IdxAt]
@@ -111,14 +113,14 @@ func newInvitation(values []string) *invitation {
 	if strings.Contains(name, " ") {
 		panic(fmt.Errorf("name不能有空格: %s", name))
 	}
-	if strings.Contains(subject, " ") {
-		panic(fmt.Errorf("subject不能有空格: %s", subject))
+	if strings.Contains(note, " ") {
+		panic(fmt.Errorf("note不能有空格: %s", note))
 	}
 	if !funk.ContainsString(categories, category) {
 		panic(fmt.Errorf("不支持的类别: %s", category))
 	}
 	switch typ {
-	case TypeOut, TypeIn:
+	case TypeOut, TypeIn, TypeInRed, TypeOutRed:
 		if money <= 0 {
 			panic(fmt.Errorf("%s: %d元", typ, money))
 		}
@@ -137,7 +139,7 @@ func newInvitation(values []string) *invitation {
 	v := new(invitation)
 	v.Name = name
 	v.Money = money
-	v.Subject = subject
+	v.Note = note
 	v.Type = typ
 	v.Category = category
 	v.At = _at

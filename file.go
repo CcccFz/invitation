@@ -17,7 +17,8 @@ const (
 )
 
 var (
-	regex = regexp.MustCompile(`^ *(\S+) (\d+) (\S+) (\S{2,3}) (\S{2}) (\d{4}-\d{2}-\d{2}) *$`)
+	regex       = regexp.MustCompile(`^ *(\S+) (\d+) (\S+) (\S{2,3}) (\S{2}) (\d{4}-\d{2}-\d{2}) *$`)
+	ignoreRegex = regexp.MustCompile(`^(# *\S+)|(^\s*)$`)
 )
 
 type fileConfig struct {
@@ -45,7 +46,10 @@ func parseFile(path string) int {
 			break
 		}
 
-		invitations = append(invitations, genInvitation(line))
+		if invitation := genInvitation(line); invitation != nil {
+			invitations = append(invitations, invitation)
+		}
+
 	}
 
 	creates(invitations)
@@ -56,7 +60,7 @@ func parseFile(path string) int {
 func exportFile(path string) int {
 	var buf bytes.Buffer
 	buf.WriteString(
-		"INSERT INTO invitations (name,money,subject,type,category,at,created_at,updated_at,deleted_at) VALUES\n",
+		"INSERT INTO invitations (name,money,note,type,category,at,created_at,updated_at,deleted_at) VALUES\n",
 	)
 
 	values := findAll()
@@ -70,7 +74,7 @@ func exportFile(path string) int {
 
 		sql := fmt.Sprintf(
 			"('%s',%d,'%s','%s','%s','%s','%s','%s',%s),\n",
-			values[i].Name, values[i].Money, values[i].Subject, values[i].Type, values[i].Category,
+			values[i].Name, values[i].Money, values[i].Note, values[i].Type, values[i].Category,
 			time2Str(values[i].At), time2Str(values[i].CreatedAt), time2Str(values[i].UpdatedAt), deletedAt,
 		)
 
@@ -90,6 +94,9 @@ func exportFile(path string) int {
 
 func genInvitation(line []byte) *invitation {
 	if !regex.Match(line) {
+		if ignoreRegex.Match(line) {
+			return nil
+		}
 		panic(fmt.Errorf("该行与正则不匹配: %s", string(line)))
 	}
 
