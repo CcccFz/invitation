@@ -144,7 +144,7 @@ func newInvitation(values []string) *invitation {
 	v.Category = category
 	v.At = _at
 
-	if v.Type == TypeOut {
+	if v.Type == TypeOut || v.Type == TypeOutRed {
 		v.Money = -v.Money
 	}
 
